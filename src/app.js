@@ -11,6 +11,7 @@ const medicalRecordRoutes = require('./routes/medicalRecord.routes');
 const medicationRoutes = require('./routes/medication.routes');
 const notificationRoutes = require('./routes/notification.routes');
 const reportRoutes = require('./routes/report.routes');
+const aiRoutes = require('./routes/ai.routes');
 
 const errorMiddleware = require('./middleware/errorMiddleware');
 
@@ -29,6 +30,7 @@ app.use('/api/v1/medical-records', medicalRecordRoutes);
 app.use('/api/v1/medications', medicationRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/reports', reportRoutes);
+app.use('/api/v1/ai', aiRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'API MediNova v1 en ligne.' });
