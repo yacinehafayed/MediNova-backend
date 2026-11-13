@@ -24,14 +24,12 @@ const markAlertAsRead = async (req, res, next) => {
   }
 };
 
+
 const checkMeasurement = async (req, res, next) => {
   try {
-    const { type, value } = req.body;
-
     const result = await alertService.checkMeasurement(
       req.user._id,
-      type,
-      value
+      req.body
     );
 
     res.status(200).json(result);
@@ -39,6 +37,7 @@ const checkMeasurement = async (req, res, next) => {
     next(error);
   }
 };
+
 
 module.exports = {
   getAlerts,

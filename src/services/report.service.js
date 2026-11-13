@@ -2,6 +2,20 @@ const Measurement = require('../models/Measurement');
 const Analysis = require('../models/Analysis');
 const Medication = require('../models/Medication');
 
+const calculateStats = (values) => {
+  const validValues = values.filter(
+    (value) => typeof value === 'number' && Number.isFinite(value)
+  );
+
+  if (validValues.length === 0) return null;
+
+  return {
+    min: Math.min(...validValues),
+    max: Math.max(...validValues),
+    avg: validValues.reduce((sum, value) => sum + value, 0) / validValues.length,
+  };
+};
+
 const getUserReport = async (userId, query) => {
   const { start, end } = query;
 
@@ -33,31 +47,60 @@ const getUserReport = async (userId, query) => {
 
   const medications = await Medication.find({ user: userId });
 
-  const stats = {};
+  const groupedStats = {};
 
   measurements.forEach((measurement) => {
-    if (!stats[measurement.type]) {
-      stats[measurement.type] = {
-        values: [],
+    const type = measurement.type;
+
+    if (!groupedStats[type]) {
+      groupedStats[type] = {
         unit: measurement.unit,
+        count: 0,
+        values: [],
+        systolicValues: [],
+        diastolicValues: [],
       };
     }
 
-    stats[measurement.type].values.push(measurement.value);
+    const stat = groupedStats[type];
+    stat.count++;
+
+    if (type === 'blood_pressure') {
+      if (Number.isFinite(measurement.systolic)) {
+        stat.systolicValues.push(measurement.systolic);
+      }
+
+      if (Number.isFinite(measurement.diastolic)) {
+        stat.diastolicValues.push(measurement.diastolic);
+      }
+    } else if (Number.isFinite(measurement.value)) {
+      stat.values.push(measurement.value);
+    }
   });
 
   const formattedStats = {};
 
-  Object.keys(stats).forEach((type) => {
-    const values = stats[type].values;
+  Object.keys(groupedStats).forEach((type) => {
+    const stat = groupedStats[type];
 
-    formattedStats[type] = {
-      unit: stats[type].unit,
-      count: values.length,
-      min: Math.min(...values),
-      max: Math.max(...values),
-      avg: values.reduce((sum, value) => sum + value, 0) / values.length,
-    };
+    if (type === 'blood_pressure') {
+      formattedStats[type] = {
+        unit: stat.unit,
+        count: stat.count,
+        systolic: calculateStats(stat.systolicValues),
+        diastolic: calculateStats(stat.diastolicValues),
+      };
+    } else {
+      const values = calculateStats(stat.values);
+
+      if (values) {
+        formattedStats[type] = {
+          unit: stat.unit,
+          count: stat.count,
+          ...values,
+        };
+      }
+    }
   });
 
   return {

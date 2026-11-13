@@ -30,7 +30,8 @@ const getProfile = (req, res) => {
 
 const updateProfile = async (req, res) => {
   try {
-    res.json(await authService.updateProfile(req.user._id, req.body));
+    const result = await authService.updateProfile(req.user._id, req.body);
+    res.json(result);
   } catch (err) {
     handleError(res, err);
   }

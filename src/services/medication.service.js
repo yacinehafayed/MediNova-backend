@@ -12,6 +12,7 @@ const createMedication = async (userId, data) => {
     description,
     dosage,
     times,
+    daysOfWeek,
     startDate,
     endDate,
   } = data;
@@ -21,6 +22,9 @@ const createMedication = async (userId, data) => {
     !dosage ||
     !Array.isArray(times) ||
     times.length === 0 ||
+    !Array.isArray(daysOfWeek) ||
+    daysOfWeek.length === 0 ||
+    !daysOfWeek.every((day) => Number.isInteger(day) && day >= 0 && day <= 6) ||
     !startDate ||
     !endDate
   ) {
@@ -35,6 +39,7 @@ const createMedication = async (userId, data) => {
     description,
     dosage,
     times,
+    daysOfWeek,
     startDate,
     endDate,
   });

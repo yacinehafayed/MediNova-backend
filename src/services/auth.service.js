@@ -19,13 +19,22 @@ const generateToken = (id) => {
   });
 };
 
-const register = async ({ name, email, password }) => {
-  if (!name || !email || !password) {
+const register = async ({ name, email, password, dateOfBirth }) => {
+  if (!name || !email || !password || !dateOfBirth) {
     throw new Error('Tous les champs sont requis.');
   }
 
   if (password.length < 6) {
     throw new Error('Le mot de passe doit faire au moins 6 caractères.');
+  }
+
+  const parsedDateOfBirth = new Date(dateOfBirth);
+  if (
+    Number.isNaN(parsedDateOfBirth.getTime()) ||
+    parsedDateOfBirth >= new Date() ||
+    parsedDateOfBirth.toISOString().slice(0, 10) !== String(dateOfBirth).slice(0, 10)
+  ) {
+    throw new Error('Date de naissance invalide.');
   }
 
   const normalizedEmail = email.trim().toLowerCase();
@@ -41,12 +50,17 @@ const register = async ({ name, email, password }) => {
     name,
     email: normalizedEmail,
     password: hashedPassword,
+    dateOfBirth: parsedDateOfBirth,
   });
 
   return {
     _id: user._id,
     name: user.name,
     email: user.email,
+    dateOfBirth: user.dateOfBirth,
+    gender: user.gender,
+    height: user.height,
+    weight: user.weight,
     token: generateToken(user._id),
   };
 };
@@ -70,6 +84,14 @@ const login = async ({ email, password }) => {
     _id: user._id,
     name: user.name,
     email: user.email,
+    phone: user.phone,
+    dateOfBirth: user.dateOfBirth,
+    gender: user.gender,
+    height: user.height,
+    weight: user.weight,
+    notificationsEnabled: user.notificationsEnabled,
+    remindersEnabled: user.remindersEnabled,
+    biometricEnabled: user.biometricEnabled,
     token: generateToken(user._id),
   };
 };
@@ -84,15 +106,69 @@ const updateProfile = async (userId, data) => {
     throw error;
   }
 
-  user.name = data.name || user.name;
-  user.email = data.email
-    ? data.email.trim().toLowerCase()
-    : user.email;
-  user.phone = data.phone ?? user.phone;
-  user.dateOfBirth = data.dateOfBirth ?? user.dateOfBirth;
-  user.gender = data.gender ?? user.gender;
-  user.height = data.height ?? user.height;
-  user.weight = data.weight ?? user.weight;
+  if (data.name !== undefined) {
+    if (typeof data.name !== 'string' || !data.name.trim()) {
+      throw new Error('Le nom est invalide.');
+    }
+    user.name = data.name.trim();
+  }
+
+  if (data.email !== undefined) { const normalizedEmail = typeof data.email === 'string' ? data.email.trim().toLowerCase() : '';
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailRegex.test(normalizedEmail)) {
+      const error = new Error('Adresse email invalide.');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const existingEmail = await User.findOne({
+      email: normalizedEmail,
+      _id: { $ne: userId },
+    });
+
+    if (existingEmail) {
+      const error = new Error('Cet email est déjà utilisé.');
+      error.statusCode = 409;
+      throw error;
+    }
+
+    user.email = normalizedEmail;
+  }
+
+  if (data.phone !== undefined) user.phone = data.phone;
+
+  if (data.dateOfBirth !== undefined) {
+    const dob = new Date(data.dateOfBirth);
+    if (Number.isNaN(dob.getTime()) || dob >= new Date()) {
+      throw new Error('Date de naissance invalide.');
+    }
+    user.dateOfBirth = dob;
+  }
+
+  if (data.gender !== undefined) {
+    if (!['male', 'female', 'other', ''].includes(data.gender)) {
+      throw new Error('Valeur du sexe invalide.');
+    }
+    user.gender = data.gender;
+  }
+
+  if (data.height !== undefined) {
+    const height = Number(data.height);
+    if (!Number.isFinite(height) || height < 30 || height > 250) {
+      throw new Error('La taille doit être comprise entre 30 et 250 cm.');
+    }
+    user.height = height;
+  }
+
+  if (data.weight !== undefined) {
+    const weight = Number(data.weight);
+    if (!Number.isFinite(weight) || weight <= 0 || weight > 500) {
+      throw new Error('Le poids doit être compris entre 0 et 500 kg.');
+    }
+    user.weight = weight;
+  }
 
   const updated = await user.save();
 
