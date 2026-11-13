@@ -6,7 +6,7 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true, minlength: 6 },
   phone: { type: String, default: '' },
   dateOfBirth: { type: Date, default: null },
-  gender: { type: String, enum: ['male', 'female', 'other', ''], default: '' },
+  gender: { type: String, enum: ['male', 'female', ''], default: '' },
   height: { type: Number, default: 0 },
   weight: { type: Number, default: 0 },
   resetPasswordToken: { type: String, default: null },
